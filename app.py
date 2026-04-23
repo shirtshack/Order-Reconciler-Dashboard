@@ -2,6 +2,7 @@
 
     streamlit run app.py
 """
+import hmac
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -16,6 +17,25 @@ from printify_send.clients.shopify import ShopifyClient
 from printify_send.core.reconciler import ReconcileResult, reconcile
 
 st.set_page_config(page_title="Order Reconciler", layout="wide")
+
+
+def check_password() -> None:
+    if st.session_state.get("authed"):
+        return
+    st.title("Order Reconciler")
+    expected = st.secrets.get("auth", {}).get("password", "")
+    with st.form("login"):
+        pw = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Enter")
+    if submitted:
+        if expected and hmac.compare_digest(pw, expected):
+            st.session_state["authed"] = True
+            st.rerun()
+        st.error("Wrong password")
+    st.stop()
+
+
+check_password()
 
 
 def load_cfg() -> dict:
