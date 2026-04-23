@@ -3,7 +3,6 @@
     streamlit run app.py
 """
 import sys
-import tomllib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -20,9 +19,14 @@ st.set_page_config(page_title="Order Reconciler", layout="wide")
 
 
 def load_cfg() -> dict:
-    # Intentionally not cached — config is tiny and we want new stores in secrets.toml
-    # to appear on the next rerun without restarting the server.
-    return tomllib.loads((ROOT / ".streamlit" / "secrets.toml").read_text(encoding="utf-8"))
+    # st.secrets works identically locally (reads .streamlit/secrets.toml) and on
+    # Streamlit Community Cloud (reads secrets pasted via the Cloud UI).
+    # Recursively convert AttrDict -> plain dict so downstream `cfg["shopify"][key]`
+    # indexing behaves exactly like the old tomllib result.
+    return {
+        "shopify": {k: dict(v) for k, v in st.secrets.get("shopify", {}).items()},
+        "printify": {k: dict(v) for k, v in st.secrets.get("printify", {}).items()},
+    }
 
 
 cfg = load_cfg()
