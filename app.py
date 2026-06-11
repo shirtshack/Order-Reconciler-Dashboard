@@ -96,6 +96,10 @@ with st.sidebar:
 st.title("Order reconciler")
 st.caption("Shopify -> Printify pre-send verification")
 
+totals_slot = st.empty()
+grand_orders = 0
+grand_items = 0
+
 if not selected_stores:
     st.info("Pick at least one store in the sidebar.")
     st.stop()
@@ -132,6 +136,9 @@ for store in selected_stores:
     except Exception as e:  # API boundary — any failure should show inline, not crash
         st.error(f"Failed to load {store}: {type(e).__name__}: {e}")
         continue
+
+    grand_orders += len(results)
+    grand_items += sum(r.printify_total_qty for r in results)
 
     st.caption(
         f"Loaded at {loaded_at.strftime('%H:%M:%S UTC')} - window: last {days} days"
@@ -230,3 +237,8 @@ for store in selected_stores:
                         f"- {title} - {variant}  \n"
                         f"  qty {li.get('quantity')}"
                     )
+
+with totals_slot.container():
+    t1, t2 = st.columns(2)
+    t1.metric("On-hold orders (all stores)", grand_orders)
+    t2.metric("Items in those orders", grand_items)
