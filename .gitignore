@@ -5,3 +5,9 @@ __pycache__/
 venv/
 .env
 scripts/sample_*.json
+
+# This repo is PUBLIC. These local working files name stores, including stealth ones
+# that must have no public link to the sibling brands (root CLAUDE.md, "Brand identity
+# isolation"). Ignored so a stray `git add -A` can't publish them.
+.project-status.md
+.claude/

@@ -6,7 +6,6 @@
 import argparse
 import sys
 import time
-import tomllib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -15,6 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from printify_send.clients.printify import PrintifyClient
 from printify_send.clients.shopify import ShopifyClient
+from printify_send.config import load_cfg
 from printify_send.core.reconciler import reconcile
 
 parser = argparse.ArgumentParser()
@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 cutoff = datetime.now(timezone.utc) - timedelta(days=args.days)
 
-cfg = tomllib.loads((ROOT / ".streamlit" / "secrets.toml").read_text(encoding="utf-8"))
+cfg = load_cfg()
 
 try:
     shopify_cfg = cfg["shopify"][args.store]

@@ -8,20 +8,21 @@ Run from the project root:
     python scripts/test_connection.py
 """
 import sys
-import tomllib
 from pathlib import Path
 
 import httpx
 
-SECRETS = Path(__file__).resolve().parent.parent / ".streamlit" / "secrets.toml"
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 
-if not SECRETS.exists():
-    sys.exit(
-        f"Missing {SECRETS}.\n"
-        f"Copy .streamlit/secrets.toml.example to that location and fill in your credentials."
-    )
+from printify_send.config import CENTRAL_SECRETS, load_cfg
 
-cfg = tomllib.loads(SECRETS.read_text(encoding="utf-8"))
+try:
+    cfg = load_cfg()
+except FileNotFoundError as exc:
+    sys.exit(str(exc))
+
+print(f"credentials: {CENTRAL_SECRETS if CENTRAL_SECRETS.exists() else 'local fallback'}")
 
 for key, shop in cfg.get("shopify", {}).items():
     print(f"\n[shopify.{key}]")

@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from printify_send.clients.printify import PrintifyClient
 from printify_send.clients.shopify import ShopifyClient
+from printify_send.config import all_stores, load_cfg
 from printify_send.core.reconciler import ReconcileResult, reconcile
 
 st.set_page_config(page_title="Order Reconciler", layout="wide")
@@ -38,19 +39,12 @@ def check_password() -> None:
 check_password()
 
 
-def load_cfg() -> dict:
-    # st.secrets works identically locally (reads .streamlit/secrets.toml) and on
-    # Streamlit Community Cloud (reads secrets pasted via the Cloud UI).
-    # Recursively convert AttrDict -> plain dict so downstream `cfg["shopify"][key]`
-    # indexing behaves exactly like the old tomllib result.
-    return {
-        "shopify": {k: dict(v) for k, v in st.secrets.get("shopify", {}).items()},
-        "printify": {k: dict(v) for k, v in st.secrets.get("printify", {}).items()},
-    }
-
-
-cfg = load_cfg()
-ALL_STORES = sorted(set(cfg.get("shopify", {})) & set(cfg.get("printify", {})))
+# Store credentials come from dev/api-credentials/secrets.toml via config.load_cfg.
+# st.secrets is passed only as the fallback for Streamlit Community Cloud, where that
+# path doesn't exist; it isn't parsed when the central file is reachable. The [auth]
+# password in check_password() above is separate and always reads st.secrets.
+cfg = load_cfg(fallback=st.secrets)
+ALL_STORES = all_stores(cfg)
 
 
 @st.cache_data(ttl=60, show_spinner=False)
