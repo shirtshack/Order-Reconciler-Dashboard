@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT))
 
 from printify_send.clients.printify import PrintifyClient
 from printify_send.clients.shopify import ShopifyClient
-from printify_send.config import all_stores, load_cfg
+from printify_send.config import EXCLUDED_STORES, all_stores, load_cfg
 from printify_send.core.reconciler import ReconcileResult, reconcile
 
 st.set_page_config(page_title="Order Reconciler", layout="wide")
@@ -81,7 +81,35 @@ def reconcile_store(store_key: str, days: int) -> tuple[list[ReconcileResult], d
 with st.sidebar:
     st.subheader("Filters")
     days = st.slider("Days to look back", 1, 14, 3)
-    selected_stores = st.multiselect("Stores", ALL_STORES, default=ALL_STORES)
+    # The multiselect's selection persists for the life of the browser session, so a
+    # `default` only bites on the first render — a store credentialed afterwards stays
+    # unticked and reads as "missing" from the dashboard, with nothing to flag it.
+    # Tick any newly discovered store BEFORE the widget is instantiated, which is the
+    # only legal point to write a widget's session_state key.
+    if "store_pick" not in st.session_state:
+        st.session_state.store_pick = ALL_STORES
+        st.session_state.stores_seen = set(ALL_STORES)
+    else:
+        fresh = set(ALL_STORES) - st.session_state.get("stores_seen", set())
+        if fresh:
+            picked = set(st.session_state.store_pick) | fresh
+            st.session_state.store_pick = [s for s in ALL_STORES if s in picked]
+            st.session_state.stores_seen = set(ALL_STORES)
+
+    selected_stores = st.multiselect("Stores", ALL_STORES, key="store_pick")
+
+    # A store needs BOTH a [shopify.*] and a [printify.*] section to be reconcilable.
+    # With only one it silently vanishes from the list above — the exact way a brand
+    # goes unprocessed unnoticed. Say so out loud instead.
+    half_wired = sorted(
+        (set(cfg["shopify"]) ^ set(cfg["printify"])) - EXCLUDED_STORES
+    )
+    if half_wired:
+        st.warning(
+            "Only one API credentialed, so not reconcilable: "
+            + ", ".join(half_wired)
+        )
+    st.caption(f"{len(ALL_STORES)} store(s) credentialed")
     st.divider()
     if st.button("Refresh (clear cache)", use_container_width=True):
         reconcile_store.clear()
