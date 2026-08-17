@@ -101,14 +101,17 @@ with st.sidebar:
     # A store needs BOTH a [shopify.*] and a [printify.*] section to be reconcilable.
     # With only one it silently vanishes from the list above — the exact way a brand
     # goes unprocessed unnoticed. Say so out loud instead.
-    half_wired = sorted(
-        (set(cfg["shopify"]) ^ set(cfg["printify"])) - EXCLUDED_STORES
-    )
-    if half_wired:
-        st.warning(
-            "Only one API credentialed, so not reconcilable: "
-            + ", ".join(half_wired)
-        )
+    # Name the side that's absent: the fix is to paste that one section, and pasting a
+    # section that already exists is a duplicate TOML key that breaks the whole app.
+    needs_printify = sorted(set(cfg["shopify"]) - set(cfg["printify"]) - EXCLUDED_STORES)
+    needs_shopify = sorted(set(cfg["printify"]) - set(cfg["shopify"]) - EXCLUDED_STORES)
+    gaps = []
+    if needs_printify:
+        gaps.append("add `[printify.<key>]` for: " + ", ".join(needs_printify))
+    if needs_shopify:
+        gaps.append("add `[shopify.<key>]` for: " + ", ".join(needs_shopify))
+    if gaps:
+        st.warning("Not reconcilable until credentialed on both APIs — " + "; ".join(gaps))
     st.caption(f"{len(ALL_STORES)} store(s) credentialed")
     st.divider()
     if st.button("Refresh (clear cache)", use_container_width=True):
